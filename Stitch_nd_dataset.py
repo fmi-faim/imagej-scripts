@@ -121,8 +121,9 @@ for row in reader:
 			#print m2.group(1), m2.group(2)
 			# TODO determine row-by-row or other setup?
 			### add to set
-			rows.add(m2.group(1))
-			cols.add(m2.group(2))
+			if m2:
+				rows.add(m2.group(1))
+				cols.add(m2.group(2))
 
 fo.close()
 
