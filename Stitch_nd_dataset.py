@@ -174,7 +174,8 @@ if (zstack and doMIP) or multichannel:
 		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".tif", doQuick, zstack and doMIP)
 else:
 	# do raw stitching => stitch stk
-	fileNamePattern = basename + "_s{i}.stk"
+	fileNamePattern = basename + "_s{i}."
+	fileNamePattern += "stk" if zstack else "tif"
 	if mode == "grid":
 		doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
 	elif mode == "tiles":
