@@ -42,17 +42,16 @@ def doGridStitching(folder, pattern, nd, xSize, ySize, quick):
 	# undo renaming of ndFile
 	os.rename(tmpPath, nd)
 
-def writeTileConfig(tileConfPath, tifBaseName, positions, xPos, yPos):
+def writeTileConfig(tileConfPath, tifBaseName, positions, xPos, yPos, dim2d):
 	fout = open(tileConfPath, 'w')
 	# write header info
-	header = """# Define the number of dimensions we are working on
-dim = 3
+	header = "# Define the number of dimensions we are working on\n"
+	header += "dim = 2\n" if dim2d else "dim = 3\n"
+	header += "\n# Define the image coordinates\n"
 
-# Define the image coordinates
-"""
 	fout.write(header)
 	for index, pos in enumerate(positions):
-		fout.write(tifBaseName + "_s" + pos + ".tif; ; (" + str(xPos[index]) + ", " + str(yPos[index]) + ", 0)\n")
+		fout.write(tifBaseName + "_s" + pos + ".tif; ; (" + str(xPos[index]) + ", " + str(yPos[index]) + ("" if dim2d else ", 0") + ")\n")
 	fout.close()
 
 def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d, scaleX, scaleY):
@@ -99,7 +98,7 @@ def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d, scaleX
 		print positionNames
 		print "Trying to read stg file:", stgPath
 		f.close()
-		writeTileConfig(os.path.join(folder, basename + "_temp_TileConfiguration.txt"), basename, positionNames, posX, posY)
+		writeTileConfig(os.path.join(folder, basename + "_temp_TileConfiguration.txt"), basename, positionNames, posX, posY, dim2d)
 
 	# temporarily rename ndFile (only if not doMIP and not multichannel)
 	tmpPath = nd + ".tmp" # TODO only if pattern ends in ".stk"
@@ -111,6 +110,9 @@ def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d, scaleX
 	"regression_threshold=0.30 max/avg_displacement_threshold=2.50 absolute_displacement_threshold=3.50 " +
 	("" if quick else "compute_overlap ") +
 	"computation_parameters=[Save computation time (but use more RAM)] image_output=[Fuse and display]");
+	# set scale from original
+	#IJ.run("Set Scale...", "distance=1 known=" + str(scaleX) + " unit=um")
+	#IJ.run(imp, "Properties...", "unit=um pixel_width=" + str(scaleX) + " pixel_height=" + str(scaleX) + " voxel_depth=" + str(scaleX) + "");
 
 	# undo renaming of ndFile
 	os.rename(tmpPath, nd)
@@ -214,6 +216,10 @@ if (zstack and doMIP) or multichannel:
 		doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
 	elif mode == "tiles":
 		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".tif", doQuick, zstack and doMIP, pixelWidth, pixelHeight)
+	# Transfer calibration from original image
+	imp = IJ.getImage()
+	imp.setCalibration(imps[0].getCalibration())
+
 else:
 	# do raw stitching => stitch stk
 	fileNamePattern = basename + "_s{i}."
