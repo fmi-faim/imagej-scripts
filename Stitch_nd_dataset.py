@@ -42,25 +42,64 @@ def doGridStitching(folder, pattern, nd, xSize, ySize, quick):
 	# undo renaming of ndFile
 	os.rename(tmpPath, nd)
 
-def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d):
-	# read folder + basename + channel1? + "_TileConfiguration.txt"
-	# Open and parse TileConfiguration.txt file
-	f = open(os.path.join(folder, basename + "_" + channelname + "_TileConfiguration.txt"))
-	content = f.read()
-	f.close()
+def writeTileConfig(tileConfPath, tifBaseName, positions, xPos, yPos):
+	fout = open(tileConfPath, 'w')
+	# write header info
+	header = """# Define the number of dimensions we are working on
+dim = 3
 
-	# Get list of image files for the template
-	lines = content.splitlines()
-
-	fout = open(os.path.join(folder, basename + "_temp_TileConfiguration.txt"), 'w')
-	for line in lines:
-		if dim2d:
-			line = line.replace("dim = 3", "dim = 2")
-			line = line.replace(", 0)", ")")
-		line = line.replace(basename + "_" + channelname, basename)
-		line = line.replace(".stk", ext)
-		fout.write(line + "\n")
+# Define the image coordinates
+"""
+	fout.write(header)
+	for index, pos in enumerate(positions):
+		fout.write(tifBaseName + "_s" + pos + ".tif; ; (" + str(xPos[index]) + ", " + str(yPos[index]) + ", 0)\n")
 	fout.close()
+
+def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d, scaleX, scaleY):
+	tileConfPath = os.path.join(folder, basename + "_" + channelname + "_TileConfiguration.txt")
+	stgPath = os.path.join(folder, basename[:-1] + ".stg")
+	print stgPath
+	# Check if TileConfiguration file exists
+	if (os.path.exists(tileConfPath)):
+		# read folder + basename + channel1? + "_TileConfiguration.txt"
+		# Open and parse TileConfiguration.txt file
+		f = open(tileConfPath)
+		content = f.read()
+		f.close()
+	
+		# Get list of image files for the template
+		lines = content.splitlines()
+
+		# TODO
+		# factor out file writing to method
+		fout = open(os.path.join(folder, basename + "_temp_TileConfiguration.txt"), 'w')
+		for line in lines:
+			if dim2d:
+				line = line.replace("dim = 3", "dim = 2")
+				line = line.replace(", 0)", ")")
+			line = line.replace(basename + "_" + channelname, basename)
+			line = line.replace(".stk", ext)
+			fout.write(line + "\n")
+		fout.close()
+	elif (os.path.exists(stgPath)):
+		# read stg file
+		f = open(stgPath)
+		reader = csv.reader(f)
+		positionNames = []
+		posX = []
+		posY = []
+		for row in reader:
+			# TODO
+			# match row[0] to 'Position(\d+)'
+			m = re.match(r'Position(\d+)', row[0])
+			if m:
+				positionNames.append(m.group(1))
+				posX.append(float(row[1])/scaleX)
+				posY.append(float(row[2])/scaleY)
+		print positionNames
+		print "Trying to read stg file:", stgPath
+		f.close()
+		writeTileConfig(os.path.join(folder, basename + "_temp_TileConfiguration.txt"), basename, positionNames, posX, posY)
 
 	# temporarily rename ndFile (only if not doMIP and not multichannel)
 	tmpPath = nd + ".tmp" # TODO only if pattern ends in ".stk"
@@ -68,7 +107,7 @@ def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d):
 	# run stitching plugin
 	IJ.run("Grid/Collection stitching", "type=[Positions from file] order=[Defined by TileConfiguration] " +
 	"directory=[" + folder + "] " +
-	"layout_file=" + basename + "_temp_TileConfiguration.txt" + " fusion_method=[Linear Blending] " +
+	"layout_file=[" + basename + "_temp_TileConfiguration.txt]" + " fusion_method=[Linear Blending] " +
 	"regression_threshold=0.30 max/avg_displacement_threshold=2.50 absolute_displacement_threshold=3.50 " +
 	("" if quick else "compute_overlap ") +
 	"computation_parameters=[Save computation time (but use more RAM)] image_output=[Fuse and display]");
@@ -152,7 +191,10 @@ if (zstack and doMIP) or multichannel:
 	options = ImporterOptions()
 	options.setId(ndPath)
 	options.setOpenAllSeries(True)
+	# TODO get number of series and loop over each series instead of opening all at once
 	imps = BF.openImagePlus(options)
+	pixelWidth = imps[0].getCalibration().pixelWidth
+	pixelHeight = imps[0].getCalibration().pixelHeight
 	fileNamePattern = basename + "_s{i}.tif"
 	for imp in imps:
 		m4 = re.match('.+Stage(\d+).+', imp.getTitle())
@@ -171,7 +213,7 @@ if (zstack and doMIP) or multichannel:
 	if mode == "grid":
 		doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
 	elif mode == "tiles":
-		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".tif", doQuick, zstack and doMIP)
+		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".tif", doQuick, zstack and doMIP, pixelWidth, pixelHeight)
 else:
 	# do raw stitching => stitch stk
 	fileNamePattern = basename + "_s{i}."
@@ -179,7 +221,7 @@ else:
 	if mode == "grid":
 		doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
 	elif mode == "tiles":
-		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".stk", doQuick) # TODO no change in TileConfiguration
+		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".stk", doQuick, True, 1.0, 1.0) # TODO no change in TileConfiguration
 
 # delete intermediate files
 print "Deleting temporary files..."
