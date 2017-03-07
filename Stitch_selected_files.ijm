@@ -2,6 +2,7 @@
 // @File(label = "Output directory", style = "directory") outDir
 // @boolean(label = "Process all files") processAll
 // @boolean(label = "Quick stitching (do not compute overlap)") doQuick
+// @double(label = "Pixel size (in µm)", value=1.0) scaleXY
 
 var extension = ".txt";
 var fileList = newArray();
@@ -35,8 +36,17 @@ function stitchList(folders, files) {
 		//print (optionString);
 		print ("Now stitching " + folders[i] + File.separator + files[i]);
 		run("Grid/Collection stitching", optionString);
+		// apply calibration
+		run("Set Scale...", "distance=1 known=" + scaleXY + " unit=um");
 		// save using Bio-Formats exporter
-		close();
+		if (isOpen("Fused")) {
+			outPath = replace(folders[i], replace(inDir, "\\\\", "\\\\\\\\"), replace(outDir, "\\\\", "\\\\\\\\"));
+			if (!File.exists(outPath)) {
+				File.makeDirectory(outPath);
+			}
+			run("Bio-Formats Exporter", "save=[" + outPath + File.separator + files[i] + ".ids]");
+			close();
+		}
 	}
 }
 
@@ -58,8 +68,8 @@ function showSelectionDialog(folderList, fileList) {
 function parseFolder(input) {
     list = getFileList(input);
     for (i = 0; i < list.length; i++) {
-        if(File.isDirectory(input + list[i]))
-            parseFolder("" + input + list[i]);
+        if(File.isDirectory(input + File.separator + list[i]))
+            parseFolder("" + input + File.separator + list[i]);
         if(endsWith(list[i], extension)) {
             folderList = Array.concat(folderList, input);
             fileList = Array.concat(fileList, list[i]);
