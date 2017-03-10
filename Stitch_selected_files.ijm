@@ -3,6 +3,7 @@
 // @boolean(label = "Process all files") processAll
 // @boolean(label = "Quick stitching (do not compute overlap)") doQuick
 // @double(label = "Pixel size (in µm)", value=1.0) scaleXY
+// @double(label = "Pixel depth (in µm)", value=1.0) scaleZ
 
 var extension = ".txt";
 var fileList = newArray();
@@ -37,13 +38,14 @@ function stitchList(folders, files) {
 		print ("Now stitching " + folders[i] + File.separator + files[i]);
 		run("Grid/Collection stitching", optionString);
 		// apply calibration
-		run("Set Scale...", "distance=1 known=" + scaleXY + " unit=um");
+		run("Properties...", "unit=um pixel_width=" + scaleXY + " pixel_height=" + scaleXY + " voxel_depth=" + scaleZ);
 		// save using Bio-Formats exporter
 		if (isOpen("Fused")) {
 			outPath = replace(folders[i], replace(inDir, "\\\\", "\\\\\\\\"), replace(outDir, "\\\\", "\\\\\\\\"));
 			if (!File.exists(outPath)) {
 				File.makeDirectory(outPath);
 			}
+			resetMinAndMax();
 			run("Bio-Formats Exporter", "save=[" + outPath + File.separator + files[i] + ".ids]");
 			close();
 		}
