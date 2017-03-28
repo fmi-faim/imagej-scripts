@@ -42,6 +42,8 @@ def doGridStitching(folder, pattern, nd, xSize, ySize, quick):
 	# undo renaming of ndFile
 	os.rename(tmpPath, nd)
 
+	return True
+
 def writeTileConfig(tileConfPath, tifBaseName, positions, xPos, yPos, dim2d):
 	fout = open(tileConfPath, 'w')
 	# write header info
@@ -99,6 +101,10 @@ def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d, scaleX
 		print "Trying to read stg file:", stgPath
 		f.close()
 		writeTileConfig(os.path.join(folder, basename + "_temp_TileConfiguration.txt"), basename, positionNames, posX, posY, dim2d)
+	else:
+		print "Couldn't find a matching TileConfiguration file or stg file."
+		print "Aborting..."
+		return False
 
 	# temporarily rename ndFile (only if not doMIP and not multichannel)
 	tmpPath = nd + ".tmp" # TODO only if pattern ends in ".stk"
@@ -116,6 +122,7 @@ def doTileStitching(folder, basename, nd, channelname, ext, quick, dim2d, scaleX
 
 	# undo renaming of ndFile
 	os.rename(tmpPath, nd)
+	return True
 
 #################### Initialize info for stitching
 
@@ -213,21 +220,25 @@ if (zstack and doMIP) or multichannel:
 			imp.close()
 		filesToDelete.append(savePath)
 	if mode == "grid":
-		doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
+		success = doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
 	elif mode == "tiles":
-		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".tif", doQuick, zstack and doMIP, pixelWidth, pixelHeight)
+		success = doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".tif", doQuick, zstack and doMIP, pixelWidth, pixelHeight)
 	# Transfer calibration from original image
-	imp = IJ.getImage()
-	imp.setCalibration(imps[0].getCalibration())
+	if success:
+		imp = IJ.getImage()
+		imp.setCalibration(imps[0].getCalibration())
 
 else:
 	# do raw stitching => stitch stk
 	fileNamePattern = basename + "_s{i}."
 	fileNamePattern += "stk" if zstack else "tif"
 	if mode == "grid":
-		doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
+		success = doGridStitching(folder, fileNamePattern, ndPath, len(cols), len(rows), doQuick)
 	elif mode == "tiles":
-		doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".stk", doQuick, True, 1.0, 1.0) # TODO no change in TileConfiguration
+		success = doTileStitching(folder, basename, ndPath, "w1" + channels['1'], ".stk", doQuick, True, 1.0, 1.0) # TODO no change in TileConfiguration
+	if success:
+		imp = IJ.getImage()
+		imp.setCalibration(imps[0].getCalibration())
 
 # delete intermediate files
 print "Deleting temporary files..."
