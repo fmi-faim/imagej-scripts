@@ -19,5 +19,5 @@ function processFile(input, file) {
 	// Do the processing here by adding your own code.
 	// Leave the print statements until things work, then remove them.
 	print("Processing: " + input + File.separator + file);
-	run("Write Tile Configuration from stg File", "log=[org.scijava.log.StderrLogService [priority = -100.0]] fs=[io.scif.services.DefaultFormatService [priority = 0.0]] stgfile=[" + input + File.separator +file + "] override=true pixelsize=" + pixelSize);
+	run("Write Tile Configuration from STG File", "log=[org.scijava.log.StderrLogService [priority = -100.0]] fs=[io.scif.services.DefaultFormatService [priority = 0.0]] stgfile=[" + input + File.separator +file + "] override=true pixelsize=" + pixelSize);
 }

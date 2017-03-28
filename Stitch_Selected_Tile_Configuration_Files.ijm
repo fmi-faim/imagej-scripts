@@ -36,11 +36,12 @@ function stitchList(folders, files) {
 		optionString = prefix + folders[i] + middle + files[i] + suffix;
 		//print (optionString);
 		print ("Now stitching " + folders[i] + File.separator + files[i]);
+		IJ.redirectErrorMessages();
 		run("Grid/Collection stitching", optionString);
-		// apply calibration
-		run("Properties...", "unit=um pixel_width=" + scaleXY + " pixel_height=" + scaleXY + " voxel_depth=" + scaleZ);
-		// save using Bio-Formats exporter
 		if (isOpen("Fused")) {
+			// apply calibration
+			run("Properties...", "unit=um pixel_width=" + scaleXY + " pixel_height=" + scaleXY + " voxel_depth=" + scaleZ);
+			// save using Bio-Formats exporter
 			outPath = replace(folders[i], replace(inDir, "\\\\", "\\\\\\\\"), replace(outDir, "\\\\", "\\\\\\\\"));
 			if (!File.exists(outPath)) {
 				File.makeDirectory(outPath);
@@ -69,6 +70,7 @@ function showSelectionDialog(folderList, fileList) {
 
 function parseFolder(input) {
     list = getFileList(input);
+    Array.sort(list);
     for (i = 0; i < list.length; i++) {
         if(File.isDirectory(input + File.separator + list[i]))
             parseFolder("" + input + File.separator + list[i]);
