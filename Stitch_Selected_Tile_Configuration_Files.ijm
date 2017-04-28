@@ -73,7 +73,7 @@ function parseFolder(input) {
     Array.sort(list);
     for (i = 0; i < list.length; i++) {
         if(File.isDirectory(input + File.separator + list[i]))
-            parseFolder("" + input + File.separator + list[i]);
+            parseFolder("" + input + File.separator + substring(list[i], 0, lengthOf(list[i])-1));
         if(endsWith(list[i], extension)) {
             folderList = Array.concat(folderList, input);
             fileList = Array.concat(fileList, list[i]);
