@@ -12,7 +12,7 @@ multiseries = true
 /
 
 try {
-	assert stgFile.name.endsWith('.stg')
+	assert stgFile.name.toLowerCase().endsWith('.stg')
 	main()
 } catch (AssertionError e) {
 	log.error("Only .stg files are allowed.\n" + e.getMessage())
@@ -22,7 +22,7 @@ def main() {
 	// Get parent folder and basename
 	def folder = stgFile.getParentFile()
 	def basename = stgFile.getName()
-	basename = basename.substring(0, basename.indexOf('.stg'))
+	basename = basename.substring(0, basename.toLowerCase().indexOf('.stg'))
 
 	// TODO optionally look for connected groups of tiles and separate them
 
